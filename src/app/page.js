@@ -8,6 +8,7 @@ export default function Home() {
         <Link className="underline" href="/flappy">Flappy Bird</Link>
         <Link className="underline" href="/doodle">Doodle Jump</Link>
         <Link className="underline" href="/dino">Dino</Link>
+        <Link className="underline" href="/road">Road Fighter</Link>
       </div>
     </div>
   );

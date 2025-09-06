@@ -66,8 +66,8 @@ export default function DoodleJump({ attempts = 5, transactionId = "" }) {
     const dpr = Math.max(window.devicePixelRatio || 1, 1);
     canvas.width = CANVAS_W * dpr;
     canvas.height = CANVAS_H * dpr;
-    canvas.style.width = `${CANVAS_W}px`;
-    canvas.style.height = `${CANVAS_H}px`;
+    canvas.style.width = `100%`;
+    canvas.style.height = `auto`;
     ctx.scale(dpr, dpr);
 
     const onKeyDown = (e) => {
@@ -84,6 +84,11 @@ export default function DoodleJump({ attempts = 5, transactionId = "" }) {
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
 
+    // liberar controles si el usuario levanta el dedo fuera de los botones
+    const releaseKeys = (e) => { keysRef.current.left = false; keysRef.current.right = false; };
+    window.addEventListener("pointerup", releaseKeys);
+    window.addEventListener("pointercancel", releaseKeys);
+
     // detectar touch
     const handleFirstTouch = () => { isTouchRef.current = true; window.removeEventListener("touchstart", handleFirstTouch); };
     window.addEventListener("touchstart", handleFirstTouch, { passive: true });
@@ -94,6 +99,8 @@ export default function DoodleJump({ attempts = 5, transactionId = "" }) {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       cancelAnimationFrame(animRef.current);
+      window.removeEventListener("pointerup", releaseKeys);
+      window.removeEventListener("pointercancel", releaseKeys);
       window.removeEventListener("touchstart", handleFirstTouch);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -513,29 +520,34 @@ export default function DoodleJump({ attempts = 5, transactionId = "" }) {
 
   return (
     <div className="flex flex-col items-center gap-2 relative">
-      <canvas ref={canvasRef} className="rounded-lg shadow-md border border-black/[.08] dark:border-white/[.145]" />
+      <canvas
+        ref={canvasRef}
+        className="rounded-lg shadow-md border border-black/[.08] dark:border-white/[.145]"
+        style={{ touchAction: "none", width: "100%", height: "auto" }}
+        onPointerDown={(e) => { e.preventDefault(); if (runningRef.current && !gameOverRef.current) { shoot(); } else if (!runningRef.current && attemptsLeftRef.current > 0) { start(); } }}
+      />
       <div className="text-sm text-center select-none">
         <p>Controles: Flechas/A-D o botones; Espacio para disparar; Enter para empezar</p>
       </div>
       {/* Controles táctiles */}
-      <div className="pointer-events-auto select-none" style={{ position: "absolute", bottom: 16, width: CANVAS_W, display: isTouchRef.current ? "flex" : "none", justifyContent: "space-between", gap: 8 }}>
+      <div className="pointer-events-auto select-none" style={{ position: "absolute", bottom: 16, left: 0, right: 0, display: isTouchRef.current ? "flex" : "none", justifyContent: "space-between", gap: 12, padding: 12 }}>
         <button
-          onTouchStart={() => { keysRef.current.left = true; }}
-          onTouchEnd={() => { keysRef.current.left = false; }}
-          className="rounded-full bg-black/40 text-white px-5 py-4"
+          onPointerDown={(e) => { e.preventDefault(); keysRef.current.left = true; }}
+          onPointerUp={(e) => { e.preventDefault(); keysRef.current.left = false; }}
+          className="rounded-full bg-black/45 text-white px-6 py-5"
         >
           ◀︎
         </button>
         <button
-          onTouchStart={() => { if (runningRef.current && !gameOverRef.current) shoot(); else if (!runningRef.current) start(); }}
-          className="rounded-full bg-black/40 text-white px-5 py-4"
+          onPointerDown={(e) => { e.preventDefault(); if (runningRef.current && !gameOverRef.current) shoot(); else if (!runningRef.current && attemptsLeftRef.current > 0) start(); }}
+          className="rounded-full bg-black/45 text-white px-6 py-5"
         >
           ●
         </button>
         <button
-          onTouchStart={() => { keysRef.current.right = true; }}
-          onTouchEnd={() => { keysRef.current.right = false; }}
-          className="rounded-full bg-black/40 text-white px-5 py-4"
+          onPointerDown={(e) => { e.preventDefault(); keysRef.current.right = true; }}
+          onPointerUp={(e) => { e.preventDefault(); keysRef.current.right = false; }}
+          className="rounded-full bg-black/45 text-white px-6 py-5"
         >
           ▶︎
         </button>

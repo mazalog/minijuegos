@@ -39,7 +39,7 @@ export default function DinoGame() {
     const ctx = canvas.getContext("2d");
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     canvas.width = W * dpr; canvas.height = H * dpr;
-    canvas.style.width = `${W}px`; canvas.style.height = `${H}px`;
+    canvas.style.width = `100%`; canvas.style.height = `auto`;
     ctx.scale(dpr, dpr);
 
     const onKey = (e) => {

@@ -5,13 +5,13 @@ import { useEffect, useRef, useState } from "react";
 const GAME_WIDTH = 360;
 const GAME_HEIGHT = 640;
 // Física en unidades por segundo
-const GRAVITY_PX_S2 = 1800;    // aceleración hacia abajo (más baja = más fácil)
-const FLAP_VELOCITY = -420;    // impulso vertical al aletear (más fuerte)
-const PIPE_GAP = 190;          // hueco entre tuberías (más grande)
-const PIPE_WIDTH = 64;
-const PIPE_INTERVAL_MS = 1500; // aparecen un poco menos frecuentes
+const GRAVITY_PX_S2 = 2200;    // aceleración hacia abajo (aún más rápida)
+const FLAP_VELOCITY = -520;    // impulso vertical al aletear (acompaña mayor gravedad)
+const PIPE_GAP = 210;          // hueco entre tuberías (más grande)
+const PIPE_WIDTH = 60;
+const PIPE_INTERVAL_MS = 1300; // base más rápida
 const BIRD_X = 84;             // posición fija del pájaro en X
-const PIPE_SPEED_BASE = 95;    // más lento al inicio
+const PIPE_SPEED_BASE = 150;   // mucho más rápido al inicio
 const CLOUD_SPEED_FACTOR = 0.30;
 const HILL_SPEED_FACTOR = 0.60;
 
@@ -54,8 +54,8 @@ export default function FlappyBird({ attempts = 5, transactionId = "" }) {
     // Size canvas for crisp rendering
     canvas.width = GAME_WIDTH * devicePixelRatio;
     canvas.height = GAME_HEIGHT * devicePixelRatio;
-    canvas.style.width = `${GAME_WIDTH}px`;
-    canvas.style.height = `${GAME_HEIGHT}px`;
+    canvas.style.width = `100%`;
+    canvas.style.height = `auto`;
     ctx.scale(devicePixelRatio, devicePixelRatio);
 
     const handleKey = (e) => {
@@ -69,18 +69,16 @@ export default function FlappyBird({ attempts = 5, transactionId = "" }) {
       }
     };
 
-    const handlePointer = () => onFlap();
+    const handlePointer = (e) => { e.preventDefault(); onFlap(); };
 
     window.addEventListener("keydown", handleKey);
-    canvas.addEventListener("mousedown", handlePointer);
-    canvas.addEventListener("touchstart", handlePointer, { passive: true });
+    canvas.addEventListener("pointerdown", handlePointer, { passive: false });
 
     drawStartScreen(ctx);
 
     return () => {
       window.removeEventListener("keydown", handleKey);
-      canvas.removeEventListener("mousedown", handlePointer);
-      canvas.removeEventListener("touchstart", handlePointer);
+      canvas.removeEventListener("pointerdown", handlePointer);
       cancelAnimationFrame(animationRef.current);
     };
     // We intentionally exclude deps to set up once
@@ -179,12 +177,16 @@ export default function FlappyBird({ attempts = 5, transactionId = "" }) {
 
     updateBackground(dt);
 
-    // Spawn pipes
-    if (lastSpawnRef.current >= PIPE_INTERVAL_MS) {
+    // Spawn pipes con intervalo dinámico basado en la velocidad
+    const currentSpeed = speedRef.current;
+    const dynamicInterval = Math.max(800, PIPE_INTERVAL_MS * (PIPE_SPEED_BASE / Math.max(1, currentSpeed)));
+    if (lastSpawnRef.current >= dynamicInterval) {
       lastSpawnRef.current = 0;
+      // Reducir ligeramente el hueco con la puntuación para evitar que se vuelva fácil
+      const effectiveGap = Math.max(150, PIPE_GAP - Math.min(60, Math.floor(scoreRef.current * 1.1)));
       const centerY = getRandomInt(120, GAME_HEIGHT - 120);
-      const topHeight = Math.max(40, centerY - PIPE_GAP / 2);
-      const bottomY = centerY + PIPE_GAP / 2;
+      const topHeight = Math.max(40, centerY - effectiveGap / 2);
+      const bottomY = centerY + effectiveGap / 2;
       const bottomHeight = Math.max(40, GAME_HEIGHT - bottomY);
       pipes.push({ x: GAME_WIDTH + 20, topHeight, bottomY, bottomHeight, passed: false });
     }
@@ -200,8 +202,8 @@ export default function FlappyBird({ attempts = 5, transactionId = "" }) {
         scoreRef.current += 1;
         setScore(scoreRef.current);
         playSound("score");
-        // pequeña subida de dificultad progresiva
-        speedRef.current = Math.min(speedRef.current + 2.5, 220);
+        // subida de dificultad progresiva más marcada
+        speedRef.current = Math.min(speedRef.current + 4, 260);
       }
     }
 
