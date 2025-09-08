@@ -19,7 +19,7 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-export default function FlappyBird({ attempts = 5, transactionId = "" }) {
+export default function FlappyBird({ attempts = 5, transactionId = "", gameEnded = () => {} }) {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const lastSpawnRef = useRef(0);
@@ -43,7 +43,9 @@ export default function FlappyBird({ attempts = 5, transactionId = "" }) {
   const attemptsLeftRef = useRef(attempts);
   const roundTotalRef = useRef(0);
   const handledGameOverRef = useRef(false);
+  const assetsRef = useRef({ bg: null, bird: null });
   const totalAttemptsRef = useRef(attempts);
+  const attemptScoresRef = useRef([]); // puntaje por intento
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -57,6 +59,15 @@ export default function FlappyBird({ attempts = 5, transactionId = "" }) {
     canvas.style.width = `100%`;
     canvas.style.height = `auto`;
     ctx.scale(devicePixelRatio, devicePixelRatio);
+
+    // Cargar imágenes opcionales desde /public
+    try {
+      const bgImg = new Image();
+      bgImg.src = "/flappy_bg.jpg"; // coloca tu imagen en public/flappy_bg.jpg
+      const birdImg = new Image();
+      birdImg.src = "/bird.png"; // coloca tu sprite en public/bird.png
+      assetsRef.current = { bg: bgImg, bird: birdImg };
+    } catch (_) {}
 
     const handleKey = (e) => {
       if (e.code === "Space" || e.code === "ArrowUp") {
@@ -84,6 +95,8 @@ export default function FlappyBird({ attempts = 5, transactionId = "" }) {
     // We intentionally exclude deps to set up once
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // La consulta a Firestore se realiza en app/flappy/page.js
 
   // Cargar récord local
   // Sin récord: no guardamos ni mostramos mejores puntuaciones
@@ -240,6 +253,8 @@ export default function FlappyBird({ attempts = 5, transactionId = "" }) {
   const onGameOver = () => {
     if (handledGameOverRef.current) return;
     handledGameOverRef.current = true;
+    // registrar puntaje del intento actual
+    try { attemptScoresRef.current.push(scoreRef.current); } catch (_) {}
     const newAttempts = Math.max(0, attemptsLeftRef.current - 1);
     attemptsLeftRef.current = newAttempts;
     setAttemptsLeft(newAttempts);
@@ -250,6 +265,10 @@ export default function FlappyBird({ attempts = 5, transactionId = "" }) {
       try {
         // eslint-disable-next-line no-console
         console.log({ game: "Flappy Bird", transactionId, totalPoints: newTotal });
+        const breakdown = Array.isArray(attemptScoresRef.current) ? attemptScoresRef.current.slice() : [];
+        const bestScore = breakdown.length ? Math.max(...breakdown) : 0;
+        const bestAttempt = breakdown.length ? breakdown.findIndex((v) => v === bestScore) + 1 : 0;
+        gameEnded({ totalPoints: newTotal, attemptsBreakdown: breakdown, bestAttempt, bestScore });
       } catch (_) {}
     }
   };
@@ -261,6 +280,17 @@ export default function FlappyBird({ attempts = 5, transactionId = "" }) {
     sky.addColorStop(1, "#b8e1ff");
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    // Fondo con imagen (opcional)
+    if (
+      assetsRef.current.bg &&
+      assetsRef.current.bg.complete &&
+      assetsRef.current.bg.naturalWidth > 0
+    ) {
+      try {
+        ctx.drawImage(assetsRef.current.bg, 0, 0, GAME_WIDTH, GAME_HEIGHT);
+      } catch (_) {}
+    }
 
     // Fondo parallax
     renderBackground(ctx);
@@ -286,50 +316,64 @@ export default function FlappyBird({ attempts = 5, transactionId = "" }) {
       ctx.strokeRect(p.x + 1.5, p.bottomY + 1.5, PIPE_WIDTH - 3, p.bottomHeight - 3);
     }
 
-    // Bird (sprite simple con rotación y ala)
+    // Bird (usar sprite si existe; si no, fallback vectorial)
     const bird = birdRef.current;
-    ctx.save();
-    ctx.translate(BIRD_X, bird.y);
-    const angle = Math.max(-0.5, Math.min(0.9, bird.vy / 10));
-    ctx.rotate(angle);
-    // cuerpo
-    ctx.fillStyle = "#ffcc00";
-    ctx.beginPath();
-    ctx.arc(0, 0, bird.r, 0, Math.PI * 2);
-    ctx.fill();
-    // barriga
-    ctx.fillStyle = "#ffe680";
-    ctx.beginPath();
-    ctx.arc(-3, 4, bird.r * 0.7, 0, Math.PI * 2);
-    ctx.fill();
-    // ojo
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(5, -4, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#222222";
-    ctx.beginPath();
-    ctx.arc(6, -4, 2, 0, Math.PI * 2);
-    ctx.fill();
-    // pico
-    ctx.fillStyle = "#ff9900";
-    ctx.beginPath();
-    ctx.moveTo(bird.r, 0);
-    ctx.lineTo(bird.r + 8, -3);
-    ctx.lineTo(bird.r + 8, 3);
-    ctx.closePath();
-    ctx.fill();
-    // ala animada
-    const flap = Math.sin(timeRef.current * 0.02) * 0.5;
-    ctx.save();
-    ctx.translate(-4, 2);
-    ctx.rotate(-0.6 + flap);
-    ctx.fillStyle = "#f5c400";
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 8, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-    ctx.restore();
+    if (
+      assetsRef.current.bird &&
+      assetsRef.current.bird.complete &&
+      assetsRef.current.bird.naturalWidth > 0
+    ) {
+      ctx.save();
+      ctx.translate(BIRD_X, bird.y);
+      const angle = Math.max(-0.5, Math.min(0.9, bird.vy / 10));
+      ctx.rotate(angle);
+      const size = bird.r * 2.2; // escala
+      ctx.drawImage(assetsRef.current.bird, -size / 2, -size / 2, size, size);
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.translate(BIRD_X, bird.y);
+      const angle = Math.max(-0.5, Math.min(0.9, bird.vy / 10));
+      ctx.rotate(angle);
+      // cuerpo
+      ctx.fillStyle = "#ffcc00";
+      ctx.beginPath();
+      ctx.arc(0, 0, bird.r, 0, Math.PI * 2);
+      ctx.fill();
+      // barriga
+      ctx.fillStyle = "#ffe680";
+      ctx.beginPath();
+      ctx.arc(-3, 4, bird.r * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+      // ojo
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(5, -4, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#222222";
+      ctx.beginPath();
+      ctx.arc(6, -4, 2, 0, Math.PI * 2);
+      ctx.fill();
+      // pico
+      ctx.fillStyle = "#ff9900";
+      ctx.beginPath();
+      ctx.moveTo(bird.r, 0);
+      ctx.lineTo(bird.r + 8, -3);
+      ctx.lineTo(bird.r + 8, 3);
+      ctx.closePath();
+      ctx.fill();
+      // ala animada
+      const flap = Math.sin(timeRef.current * 0.02) * 0.5;
+      ctx.save();
+      ctx.translate(-4, 2);
+      ctx.rotate(-0.6 + flap);
+      ctx.fillStyle = "#f5c400";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 8, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      ctx.restore();
+    }
 
     // Score
     ctx.fillStyle = "#ffffff";
@@ -438,7 +482,7 @@ export default function FlappyBird({ attempts = 5, transactionId = "" }) {
     ctx.fillText("Flappy Bird", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40);
     ctx.font = "16px system-ui, -apple-system, Segoe UI, Roboto";
     ctx.fillText("Click/Toque o Espacio para iniciar", GAME_WIDTH / 2, GAME_HEIGHT / 2);
-    ctx.fillText("Durante el juego: Espacio para aletear", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 24);
+    ctx.fillText("Durante el juego: Espacio o click para aletear", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 24);
     // Sin récord
     ctx.fillText(`Intentos disponibles: ${attemptsLeftRef.current}`, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 72);
     ctx.fillText(`Total acumulado: ${roundTotalRef.current}`, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 96);

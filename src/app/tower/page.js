@@ -1,6 +1,8 @@
-import DoodleJump from "./DoodleJump";
+"use client";
 
-export default function DoodlePage({ searchParams }) {
+import TowerStack from './TowerStack';
+
+export default function TowerPage({ searchParams }) {
   const attemptsRaw = searchParams?.attempts;
   const attemptsParsed = Array.isArray(attemptsRaw) ? attemptsRaw[0] : attemptsRaw;
   const attempts = Number.isFinite(parseInt(attemptsParsed, 10)) ? Math.max(0, parseInt(attemptsParsed, 10)) : 5;
@@ -9,11 +11,8 @@ export default function DoodlePage({ searchParams }) {
   const transactionId = Array.isArray(txRaw) ? (txRaw[0] ?? "") : (txRaw ?? "");
 
   return (
-    <div className="min-h-screen p-6 sm:p-10 flex flex-col items-center gap-6">
-      <h1 className="text-2xl font-bold">Doodle Jump</h1>
-      <DoodleJump attempts={attempts} transactionId={transactionId} />
+    <div className="flex min-h-screen flex-col items-center justify-between p-4">
+      <TowerStack attempts={attempts} transactionId={transactionId} />
     </div>
   );
 }
-
-

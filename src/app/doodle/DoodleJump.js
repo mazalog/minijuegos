@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { fetchTransactionById } from "../../lib/firebase";
 
 const CANVAS_W = 360;
 const CANVAS_H = 640;
@@ -105,6 +106,21 @@ export default function DoodleJump({ attempts = 5, transactionId = "" }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Consultar Firestore por transactionId recibido
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!transactionId) return;
+      try {
+        const tx = await fetchTransactionById(transactionId);
+        if (!active) return;
+        // eslint-disable-next-line no-console
+        console.log("[DoodleJump] TX", transactionId, tx || "NOT_FOUND");
+      } catch (_) {}
+    })();
+    return () => { active = false; };
+  }, [transactionId]);
 
   const start = () => {
     if (attemptsLeftRef.current <= 0) return;
