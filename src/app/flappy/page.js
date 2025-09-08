@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import FlappyBird from "./FlappyBird";
 import { addGameResult, addJuiceMinigame, fetchTransactionById } from "../../lib/firebase";
 
-export default function FlappyPage() {
+function FlappyPageContent() {
 
 
   const searchParams = useSearchParams();
@@ -135,5 +135,15 @@ export default function FlappyPage() {
     </div>
   );
 }
+
+export default function FlappyPage() {
+  return (
+    <Suspense fallback={<div />}> 
+      <FlappyPageContent />
+    </Suspense>
+  );
+}
+
+export const dynamic = "force-dynamic";
 
 
