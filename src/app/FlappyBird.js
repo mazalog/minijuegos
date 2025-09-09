@@ -513,7 +513,7 @@ export default function FlappyBird({ attempts = 5, transactionId = "", gameEnded
         ref={canvasRef}
         className="rounded-lg shadow-md border border-black/[.08] dark:border-white/[.145]"
       />
-      <div className="text-sm text-center select-none">
+      <div className="text-sm text-center select-none bg-black/60 text-white rounded-md px-3 py-1 border border-white/20 backdrop-blur-md shadow-sm">
         <p>Controles: Espacio/Click/Toque para volar, Enter para reiniciar</p>
       </div>
     </div>

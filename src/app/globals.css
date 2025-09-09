@@ -20,7 +20,12 @@
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image: url("https://firebasestorage.googleapis.com/v0/b/pegalachapa.firebasestorage.app/o/RECURSOS%2FFONDOFLAPPYBIRD.webp?alt=media&token=0b0bfe5d-912a-4e27-84bd-46735c6e029b");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
