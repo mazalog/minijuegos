@@ -15,6 +15,7 @@ function FlappyPageContent() {
   const transactionId = searchParams.get("transactionId") ?? "";
   const [juiceMinigame, setJuiceMinigame] = useState(false);
   const [summary, setSummary] = useState(null);
+  const raffleUrl = (raffleData && (raffleData.raffleUrl || raffleData.raffleLink)) ? (raffleData.raffleUrl || raffleData.raffleLink) : "/";
 
   const gameEnded = async (x) => {
     setSummary({
@@ -96,6 +97,17 @@ function FlappyPageContent() {
                     </ul>
                   </div>
                 )}
+                <div className="mt-6 text-center">
+                  <p className="text-xs text-white/70 mb-2">Para seguir jugando debes comprar otros números de la rifa.</p>
+                  <button
+                    type="button"
+                    onClick={() => { window.location.href = raffleUrl; }}
+                    className="inline-flex items-center justify-center rounded-md bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/60 focus:ring-offset-0 w-full"
+                    aria-label="Seguir jugando"
+                  >
+                    Seguir jugando
+                  </button>
+                </div>
               </div>
             ) : null}
           </div>
@@ -123,6 +135,17 @@ function FlappyPageContent() {
                   </ul>
                 </div>
               )}
+              <div className="mt-6 text-center">
+                <p className="text-xs text-white/70 mb-2">Para seguir jugando debes comprar otros números de la rifa.</p>
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = raffleUrl; }}
+                  className="inline-flex items-center justify-center rounded-md bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/60 focus:ring-offset-0 w-full"
+                  aria-label="Seguir jugando"
+                >
+                  Seguir jugando
+                </button>
+              </div>
             </div>
           </div>
         ) :
