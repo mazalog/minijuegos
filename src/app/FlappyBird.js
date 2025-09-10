@@ -47,6 +47,13 @@ export default function FlappyBird({ attempts = 5, transactionId = "", gameEnded
   const totalAttemptsRef = useRef(attempts);
   const attemptScoresRef = useRef([]); // puntaje por intento
 
+  // Intro y modo prueba
+  const [showIntro, setShowIntro] = useState(true);
+  const showIntroRef = useRef(true);
+  const [trialAttemptsLeft, setTrialAttemptsLeft] = useState(2);
+  const trialAttemptsLeftRef = useRef(2);
+  const isTrialModeRef = useRef(false);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -133,6 +140,7 @@ export default function FlappyBird({ attempts = 5, transactionId = "", gameEnded
   };
 
   const start = () => {
+    if (showIntroRef.current) return; // no iniciar si está en la pantalla de introducción
     if (attemptsLeftRef.current <= 0) return;
     ensureAudioContext();
     setIsRunning(true); isRunningRef.current = true;
@@ -153,6 +161,7 @@ export default function FlappyBird({ attempts = 5, transactionId = "", gameEnded
   const onFlap = () => {
     ensureAudioContext();
     if (!isRunningRef.current) {
+      if (showIntroRef.current) return;
       start();
       return;
     }
@@ -253,7 +262,24 @@ export default function FlappyBird({ attempts = 5, transactionId = "", gameEnded
   const onGameOver = () => {
     if (handledGameOverRef.current) return;
     handledGameOverRef.current = true;
-    // registrar puntaje del intento actual
+    // Si es modo prueba, no sumar puntos al total ni al breakdown
+    if (isTrialModeRef.current) {
+      const newTrial = Math.max(0, trialAttemptsLeftRef.current - 1);
+      trialAttemptsLeftRef.current = newTrial;
+      setTrialAttemptsLeft(newTrial);
+      attemptsLeftRef.current = newTrial;
+      setAttemptsLeft(newTrial);
+      if (newTrial === 0) {
+        // Terminar modo prueba y volver a introducción
+        isTrialModeRef.current = false;
+        setIsRunning(false); isRunningRef.current = false;
+        setIsGameOver(false); isGameOverRef.current = false;
+        showIntroRef.current = true; setShowIntro(true);
+      }
+      return;
+    }
+
+    // registrar puntaje del intento actual (modo oficial)
     try { attemptScoresRef.current.push(scoreRef.current); } catch (_) {}
     const newAttempts = Math.max(0, attemptsLeftRef.current - 1);
     attemptsLeftRef.current = newAttempts;
@@ -481,7 +507,7 @@ export default function FlappyBird({ attempts = 5, transactionId = "", gameEnded
     ctx.textAlign = "center";
     ctx.fillText("Flappy Bird", GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40);
     ctx.font = "16px system-ui, -apple-system, Segoe UI, Roboto";
-    ctx.fillText("Click/Toque o Espacio para iniciar", GAME_WIDTH / 2, GAME_HEIGHT / 2);
+    ctx.fillText("Elige una opción debajo para comenzar", GAME_WIDTH / 2, GAME_HEIGHT / 2);
     ctx.fillText("Durante el juego: Espacio o click para aletear", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 24);
     // Sin récord
     ctx.fillText(`Intentos disponibles: ${attemptsLeftRef.current}`, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 72);
@@ -509,10 +535,56 @@ export default function FlappyBird({ attempts = 5, transactionId = "", gameEnded
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <canvas
-        ref={canvasRef}
-        className="rounded-lg shadow-md border border-black/[.08] dark:border-white/[.145]"
-      />
+      <div className="relative w-full flex justify-center">
+        <canvas
+          ref={canvasRef}
+          className="rounded-lg shadow-md border border-black/[.08] dark:border-white/[.145]"
+        />
+        {showIntro ? (
+          <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
+            <div className="w-full max-w-md rounded-xl border border-white/20 bg-black/60 backdrop-blur-md p-4 text-white">
+              <h3 className="text-lg font-semibold text-center">¿Cómo quieres comenzar?</h3>
+              <ul className="text-sm text-white/85 list-disc pl-5 mt-2 space-y-1">
+                <li>Usa Espacio o Click/Toque para aletear.</li>
+                <li>Evita tocar el suelo, el techo o las tuberías.</li>
+              </ul>
+              <div className="mt-4 grid grid-cols-1 gap-3">
+                {trialAttemptsLeft > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      isTrialModeRef.current = true;
+                      showIntroRef.current = false; setShowIntro(false);
+                      attemptsLeftRef.current = trialAttemptsLeftRef.current;
+                      setAttemptsLeft(trialAttemptsLeftRef.current);
+                      start();
+                    }}
+                    className="w-full inline-flex items-center justify-center rounded-md bg-slate-600 hover:bg-slate-700 px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-white/40"
+                  >
+                    Probar intentos ({trialAttemptsLeft} restantes)
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    isTrialModeRef.current = false;
+                    showIntroRef.current = false; setShowIntro(false);
+                    attemptsLeftRef.current = totalAttemptsRef.current;
+                    setAttemptsLeft(totalAttemptsRef.current);
+                    start();
+                  }}
+                  className="w-full inline-flex items-center justify-center rounded-md bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
+                >
+                  Comenzar juego
+                </button>
+              </div>
+              {trialAttemptsLeft > 0 ? (
+                <p className="mt-3 text-[12px] text-white/75 text-center">Los intentos de prueba no se contabilizan en tu resumen.</p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
       <div className="text-sm text-center select-none bg-black/60 text-white rounded-md px-3 py-1 border border-white/20 backdrop-blur-md shadow-sm">
         <p>Controles: Espacio/Click/Toque para volar, Enter para reiniciar</p>
       </div>

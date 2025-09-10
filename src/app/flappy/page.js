@@ -15,7 +15,7 @@ function FlappyPageContent() {
   const transactionId = searchParams.get("transactionId") ?? "";
   const [juiceMinigame, setJuiceMinigame] = useState(false);
   const [summary, setSummary] = useState(null);
-  const raffleUrl = (raffleData && (raffleData.raffleUrl || raffleData.raffleLink)) ? (raffleData.raffleUrl || raffleData.raffleLink) : "/";
+  const raffleUrl = "https://www.pegalachapa.com/rifas/BcK49bSWfzlGVdMskufj";
 
   const gameEnded = async (x) => {
     setSummary({
